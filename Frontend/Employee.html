@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button onclick="Logout()">Logout</button>
+     
+        <form id="employeeForm">
+        <label for="firstName">First Name:</label>
+        <input type="text" id="firstName" required><br><br>
+        
+        <label for="lastName">Last Name:</label>
+        <input type="text" id="lastName" required><br><br>
+        
+        <label for="email">Email:</label>
+        <input type="email" id="email" required><br><br>
+        
+        <label for="department">Department:</label>
+      
+        <select name="" id="department">
+          <option value="Operations">Operations</option>
+          <option value="Tech">Tech</option>
+          <option value="Marketing">Marketing</option>
+        </select>
+        <label for="salary">Salary:</label>
+        <input type="number" id="salary" required><br><br>
+        
+        <input type="submit" value="AddEmployee">
+         </form>
+          
+         <div id="filterform">
+          <label for="">Filter By Department</label>
+          <select name="" id="filterbydepartment">
+            <option value="">No filter</option>
+            <option value="Operations">Operations</option>
+            <option value="Tech">Tech</option>
+            <option value="Marketing">Marketing</option>
+          </select>
+         </div>
+         <input type="search" id="Search" placeholder="Search First Name">
+        <div id="sortingbySalary"
+        >
+        <label for="">Sort By Salary</label>
+
+      <select name="" id="sortingbysalary">
+
+        <option value="">No Sorting</option>
+        <option value="asc">Sort Low to high</option>
+        <option value="desc">Sort high to Low</option>
+      </select></div>
+       <div id="employeeTableBody">
+       </div>
+       <div id="pagination"></div>
+       <div id="editFormContainer" style="display: none;">
+        <h2>Edit Employee</h2>
+        <form id="editForm">
+          <input type="text" id="EfirstName" placeholder="First Name" required>
+          <input type="text" id="ElastName" placeholder="Last Name" required>
+          <input type="email" id="Eemail" placeholder="Email" required>
+          <select id="Edepartment" required>
+            <option value="">Select Department</option>
+            <option value="Tech">Tech</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Operations">Operations</option>
+          </select>
+          <input type="number" id="Esalary" placeholder="Salary" required>
+          <input type="submit" value="Update">
+        </form>
+        </div>
+         
+        
+      </div>
+    </body>
+</html>
+<script src="./js/baseurl.js"></script>
+<script>
+function Logout(){
+    localStorage.clear("token")
+    window.open("index.html")
+}
+const token = localStorage.getItem("token")
+document.getElementById('employeeForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent the form from submitting normally
+    
+    
+    const firstName = document.getElementById('firstName').value;
+    const lastName = document.getElementById('lastName').value;
+    const email = document.getElementById('email').value;
+    const department = document.getElementById('department').value;
+    const salary = document.getElementById('salary').value;
+    
+  
+    const formData = {
+        FirstName: firstName,
+        LastName: lastName,
+        Email: email,
+        Department: department,
+        Salary: salary // Assuming the Salary field is a number
+    };
+    foraddemployee(formData)
+})
+function foraddemployee(formData){
+    fetch(`${BaseUrl}/employees/add`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(`${data.msg}`)
+        fetchEmployees(page,department,sorting,searchbyFirtName)
+
+    })
+    .catch(error => {
+        console.error('Error:', error.message);
+    });
+
+}
+
+ let sorting = ""
+let department = ""
+let page=1;
+let searchbyFirtName = ""
+const fetchEmployees = async (page,dep,sort,search) => {
+  let api;
+  department=dep
+  sorting=sort
+   searchbyFirtName=search
+  if(dep!==""){
+    api =`${BaseUrl}/employees/filterbydep?page=${page}&limit=5&department=${dep}`
+  }else if(sort!==""){
+    api = `${BaseUrl}/employees/sortbysalary?page=${page}&limit=5&salary=${sort}`
+  }else if(search!==""){
+    api = `${BaseUrl}/employees/searchbyname?page=${page}&limit=5&search=${search}`
+  }else{
+    api = `${BaseUrl}/employees?page=${page}&limit=5`
+  }
+    try {
+      const response = await fetch(api,{
+        headers:{
+            'Authorization': `Bearer ${token}`,
+        }
+      });
+        const data = await response.json();
+        displayEmployeeTable(data.employees);
+        displayPagination( data.totalPages);
+    
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+  
+
+  const displayEmployeeTable = (employees) => {
+    const tableBody = document.querySelector('#employeeTableBody');
+    tableBody.innerHTML = '';
+  
+    employees.forEach((employee) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${employee.FirstName}</td>
+        <td>${employee.LastName}</td>
+        <td>${employee.Email}</td>
+        <td>${employee.Department}</td>
+        <td>${employee.Salary}</td>
+        <td><button class="editButton" data-id="${employee._id}">Edit</button></td>
+      <td><button class="deleteButton" data-id="${employee._id}">Delete</button></td>
+      `;
+      tableBody.appendChild(row);
+    });
+  };
+
+  const pagination = document.getElementById("pagination")
+  function displayPagination(TotalPage){
+    let btn_arr = []
+    for(let i=1;i<=TotalPage;i++){
+      btn_arr.push(`<button class="pagination-button" data-page-number=${i}>${i}</button>`)
+    } 
+    pagination.innerHTML = btn_arr.join("")
+    let SelectingAllButton = document.querySelectorAll("#pagination button")
+    for(let btn of SelectingAllButton){
+      btn.addEventListener("click",(e)=>{
+        fetchEmployees(e.target.dataset.pageNumber,department,sorting,searchbyFirtName)
+      })
+    }
+  }
+  
+     ///edit and delete
+     
+  const tableBody = document.querySelector('#employeeTableBody');
+  tableBody.addEventListener('click', (event) => {
+    if (event.target.classList.contains('deleteButton')) {
+      const employeeId = event.target.dataset.id;
+      deleteEmployee(employeeId);
+    }else if(event.target.classList.contains("editButton")){
+      const employeeId = event.target.dataset.id;
+      editFormContainer.style= "display:block"
+      UpdateEmployee(employeeId)
+    }
+  });
+  
+  let EfirstName = document.getElementById('EfirstName')
+  let ElastName = document.getElementById('ElastName')
+  let Eemail = document.getElementById('Eemail')
+  let Edepartment = document.getElementById('Edepartment');
+  let Esalary = document.getElementById('Esalary')
+ async function UpdateEmployee(id){
+  api = `${BaseUrl}/employees/getOneByID/${id}`
+    try {
+      const response = await fetch(api,{
+        headers:{
+            'Authorization': `Bearer ${token}`,
+        }
+      });
+        const data = await response.json();
+        console.log(data.employee)
+
+        EfirstName.value = data.employee.FirstName
+      Eemail.value=data.employee.Email
+      ElastName.value=data.employee.LastName
+      Edepartment.value = data.employee.Department
+      Esalary.value = data.employee.Salary
+       Updatedataforemployee(data.employee)    
+    } catch (error) {
+      console.error(error.message);
+    }
+  }
+
+  function Updatedataforemployee(data){
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+      e.preventDefault(); // Prevent the form from submitting normally
+      const formData = {
+          FirstName: EfirstName.value,
+          LastName: ElastName.value,
+          Email: Eemail.value,
+          Department: Edepartment.value,
+          Salary: Esalary.value // Assuming the Salary field is a number
+      };
+      forUpdateEmployee(formData,data._id)
+  })
+  }
+const forUpdateEmployee=(data,id)=>{
+  fetch(`${BaseUrl}/employees/edit/${id}`, {
+    method: 'PATCH',
+    headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+})
+.then(response => response.json())
+.then(data => {
+    alert(`${data.msg}`)
+    editFormContainer.style= "display:none"
+    fetchEmployees(page,department,sorting,searchbyFirtName)
+
+  })
+.catch(error => {
+    console.error('Error:', error.message);
+});
+}
+
+  const deleteEmployee = (employeeId) => {
+  fetch(`${BaseUrl}/employees/delete/${employeeId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    alert(data.msg);
+    fetchEmployees(page,department,sorting,searchbyFirtName);
+  })
+  .catch(error => {
+    console.error('Error:', error.message);
+  });
+};
+ 
+
+
+
+  fetchEmployees(page,department,sorting,searchbyFirtName)
+ ///filterfetch 
+  const filterbydepartment =document.getElementById("filterbydepartment")
+  filterbydepartment.addEventListener("change",()=>{
+    fetchEmployees(page,filterbydepartment.value,sorting,searchbyFirtName)
+  })
+
+///sorting
+const sortingbysalary = document.getElementById("sortingbysalary")
+
+sortingbysalary.addEventListener("change",(e)=>{
+  e.preventDefault()
+  fetchEmployees(page,department,sortingbysalary.value,searchbyFirtName)
+})
+
+
+///search 
+const SearchbyFirstname = document.getElementById("Search")
+
+SearchbyFirstname.addEventListener("input",(e)=>{
+  e.preventDefault()
+  fetchEmployees(page,department,sorting,SearchbyFirstname.value)
+  
+})
+    
+
+
+</script>

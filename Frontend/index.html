@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login/Register</title>
+    <style>
+        body{
+            margin: 0px;
+            padding:0px
+        }
+        .Container{
+            width: 40%;
+            border: 2px solid red;
+            margin: auto;
+            position: relative;
+            top: 100px;
+        }
+        .form-container {
+          display: none;
+          
+        }
+    
+        .active {
+          display: block;
+        }
+    
+        .active-button {
+          background-color: #00ff00;
+          border: none;
+        }
+        .buttonDiv{
+            background-color: beige;
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="Container" >
+    <h1>Login/Register</h1>
+
+  <div class="buttonDiv">
+    <button id="login-button" class="active-button" onclick="toggleForm('login')">Login</button>
+    <button id="register-button" onclick="toggleForm('register')">Register</button>
+  </div>
+
+  <div id="login-form" class="form-container active">
+    <h2>Login</h2>
+ 
+    <form id="loginForm">
+      <input type="email" name="" id="loginemail" placeholder="email">
+      <br>
+      <input type="password" name="" id="loginpassword" placeholder="password">
+      <br>
+      <input type="submit" value="Login">
+    </form>
+  </div>
+
+  <div id="register-form" class="form-container">
+    <h2>Register</h2>
+    <form id="registerform">
+      <input type="email" name="" id="regemail" placeholder="email">
+      <br>
+      <input type="password" name="" id="regpassword" placeholder="password">
+      <br>
+      <input type="password" name="" id="confirmpass" placeholder="Confirm password">
+      <br>
+      <input type="submit" value="Regsiter">
+    </form>
+</div>
+</body>
+<script src="./js/baseurl.js"></script>
+<script>
+    function toggleForm(formType) {
+        var loginForm = document.getElementById("login-form");
+        var registerForm = document.getElementById("register-form");
+        var loginButton = document.getElementById("login-button");
+        var registerButton = document.getElementById("register-button");
+  
+        if (formType === "login") {
+          loginForm.classList.add("active");
+          registerForm.classList.remove("active");
+          loginButton.classList.add("active-button");
+          registerButton.classList.remove("active-button");
+        } else if (formType === "register") {
+          loginForm.classList.remove("active");
+          registerForm.classList.add("active");
+          loginButton.classList.remove("active-button");
+          registerButton.classList.add("active-button");
+        }
+      }
+      const loginForm = document.querySelector('#loginForm');
+
+      loginForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+      
+        const email = document.querySelector('#loginemail').value;
+        const password = document.querySelector('#loginpassword').value
+        forpostingdataLogin(email,password)
+      })
+
+    function forpostingdataLogin(email,password){
+      fetch(`${BaseUrl}/user/login`,{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            email,
+            password
+        })
+      }).then((res)=>res.json()).then((data)=>{
+          console.log(data.msg)
+          localStorage.setItem("token",data.token)
+          window.open("Employee.html")
+      }).catch((err)=>{
+        console.log(err.message)
+      })
+    }
+
+    const registeform = document.querySelector('#registerform');
+
+      registeform.addEventListener("submit",(e)=>{
+        e.preventDefault()
+        const email = document.querySelector('#regemail').value;
+        const password = document.querySelector('#regpassword').value
+        const confirmpass = document.querySelector('#confirmpass').value
+        forpostingdataReg(email,password,confirmpass)
+      })
+
+      function forpostingdataReg(email,password,confirmpass){
+        fetch(`${BaseUrl}/user/signup`,{
+          method:"POST",
+          headers:{
+              "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+              email,
+              password,confirmpass
+          })
+        }).then((res)=>res.json()).then((data)=>{
+            alert(`${data.msg}`)
+        }).catch((err)=>{
+            console.log(err.message)
+        })
+      }
+  
+</script>
+</html>
